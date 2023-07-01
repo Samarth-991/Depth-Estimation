@@ -23,8 +23,8 @@ from utils.common import create_logger
 def train(args):
     logger = create_logger()
 
-    data_path = "/mnt/e/Personal/Samarth/repository/RGB_to_3D_conversion/Data"
-    model_path = "/mnt/e/Personal/Samarth/repository/RGB_to_3D_conversion/model"
+    data_path = "RGB_to_3D_conversion/Data"
+    model_path = "RGB_to_3D_conversion/model"
 
     train_df = pd.read_csv(os.path.join(data_path, 'data/nyu2_train.csv'))
     train_df.columns = ['RGB_images', 'Depth_images']
@@ -38,6 +38,8 @@ def train(args):
 
     batch_size = args.batchsize
     epochs = args.epochs
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     rgb_image_files = [osp.join(data_path, filename) for filename in train_df['RGB_images'].to_list()]
     depth_image_files = [osp.join(data_path, filename) for filename in train_df['Depth_images'].to_list()]
@@ -65,17 +67,16 @@ def train(args):
     valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=1)
 
     # Create model
-    if torch.cuda.is_available():
-        model = Model().cuda()
-    else:
-        model = Model()
+    model = Model.to(device)
 
     # Define Optimizer
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
 
     # Loss
     l1_criterion = nn.L1Loss()
-
+    
+    #model Name 
+    model_name = 'depthnet.ckpt'
     # start Training
     epoch_loss = 0.0
     for epoch in range(epochs):
@@ -87,9 +88,9 @@ def train(args):
         end = time.time()
 
         for i, sample_image in tqdm(enumerate(train_loader),total=N):
-            optimizer.zero_grad()
-            image = torch.autograd.Variable(sample_image['image'].cuda())
-            depth = torch.autograd.Variable(sample_image['depth'].cuda())
+            
+            image = sample_image['image'].to(device)
+            depth = sample_image['depth'].to(device)
             depth_n = DepthNorm(depth)
             # Predict
             output = model(image)
@@ -97,6 +98,7 @@ def train(args):
             l_ssim = torch.clamp((1 - ssim(output, depth_n, val_range=1000.0 / 10.0)) * 0.5, 0, 1)
             loss = (1.0 * l_ssim) + (0.1 * l_depth)
             # Update step
+            optimizer.zero_grad()
             losses.update(loss.data.item(), image.size(0))
             loss.backward()
             optimizer.step()
@@ -116,25 +118,27 @@ def train(args):
                       .format(epoch + 1, i + 1, N, batch_time=batch_time, loss=losses, eta=eta))
             if i + 1 % 10 == 0:
                 logger.info("logging progress ")
-                LogProgress(model, valid_loader, niter)
+                LogProgress(model, valid_loader, niter,device=device)
         if epoch == 0:
             epoch_loss = losses.avg
             torch.save(model, os.path.join(model_path,'depth_model.pt'))
         elif epoch_loss < losses.avg:
             epoch_loss = losses.avg
             logger.info("Loss decreased from {} to {}".format(epoch_loss, losses.avg))
-            torch.save(model, os.path.join(model_path,'depth_model.pt'))
+            # Save the model checkpoint
+            os.makedirs(osp.join(data_path, epoch ),exist_ok=True)
+            torch.save(model.state_dict(), osp.join(model_path, epoch ,model_name))
 
-    model_name = 'final_model.pt'
-    torch.save(osp.join(data_path, model_name))
+    torch.save(osp.join(model_path, model_name))
 
 
-def LogProgress(model, val_loader, niter,out_dir='model/runs'):
+def LogProgress(model, val_loader, niter,out_dir='model/runs',device='cpu'):
     model.eval()
     sequential = val_loader
     sample_batch = next(iter(sequential))
-    image = torch.autograd.Variable(sample_batch['image'].cuda())
-    depth = torch.autograd.Variable(sample_batch['depth'].cuda(non_blocking=True))
+    image = sample_image['image'].to(device)
+    depth = sample_image['depth'].to(device)
+
     output = DepthNorm(model(image))
     predicted_image  = colorize(vutils.make_grid(output.data, nrow=6, normalize=False))
     print(predicted_image,type(predicted_image))
