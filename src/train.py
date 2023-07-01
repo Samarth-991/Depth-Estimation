@@ -67,7 +67,7 @@ def train(args):
     valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=1)
 
     # Create model
-    model = Model.to(device)
+    model = Model().to(device)
 
     # Define Optimizer
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
