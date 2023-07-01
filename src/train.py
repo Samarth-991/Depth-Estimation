@@ -23,8 +23,8 @@ from utils.common import create_logger
 def train(args):
     logger = create_logger()
 
-    data_path = "RGB_to_3D_conversion/Data"
-    model_path = "RGB_to_3D_conversion/model"
+    data_path = "/content/"
+    model_path = "/content/model"
 
     train_df = pd.read_csv(os.path.join(data_path, 'data/nyu2_train.csv'))
     train_df.columns = ['RGB_images', 'Depth_images']
@@ -33,8 +33,8 @@ def train(args):
     val_df.columns = ['RGB_images', 'Depth_images']
 
     ## Sample Data to avoid training for long time
-    train_df = train_df.sample(1000)
-    val_df = val_df.sample(100)
+    train_df = train_df.sample(10000)
+    val_df = val_df.sample(500)
 
     batch_size = args.batchsize
     epochs = args.epochs
@@ -80,64 +80,64 @@ def train(args):
     # start Training
     epoch_loss = 0.0
     for epoch in range(epochs):
-        batch_time = AverageMeter()
-        losses = AverageMeter()
-        N = len(train_loader)
-        # switch to train
-        model.train()
+      batch_time = AverageMeter()
+      losses = AverageMeter()
+      N = len(train_loader)
+      # switch to train
+      model.train()
+      end = time.time()
+
+      for i, sample_image in enumerate(train_loader):  
+        image = sample_image['image'].to(device)
+        depth = sample_image['depth'].to(device)
+        depth_n = DepthNorm(depth)
+        # Predict
+        output = model(image)
+        l_depth = l1_criterion(output, depth_n)
+        l_ssim = torch.clamp((1 - ssim(output, depth_n, val_range=1000.0 / 10.0)) * 0.5, 0, 1)
+        loss = (1.0 * l_ssim) + (0.1 * l_depth)
+        # Update step
+        optimizer.zero_grad()
+        losses.update(loss.data.item(), image.size(0))
+        loss.backward()
+        optimizer.step()
+
+        # Measure elapsed time
+        batch_time.update(time.time() - end)
         end = time.time()
+        eta = str(datetime.timedelta(seconds=int(batch_time.val * (N - i))))
+        # Log progress
+        niter = epoch * N + i
+        if i % 10 == 0:
+            # Print to console
+            logger.info('Epoch: [{0}][{1}/{2}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
+                  'ETA {eta}\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})'
+                  .format(epoch + 1, i + 1, N, batch_time=batch_time, loss=losses, eta=eta))
+        if i + 1 % 10 == 0:
+            logger.info("logging progress ")
+            LogProgress(model, valid_loader, niter,device=device)
+      if epoch == 0:
+          epoch_loss = losses.avg
+          logger.info("Loss decreased from -inf. to {}".format(losses.avg))
+      
+      elif epoch_loss > losses.avg:
+          logger.info("Loss decreased from {} to {}".format(epoch_loss, losses.avg))
+          epoch_loss = losses.avg
+          # Save the model checkpoint
+          torch.save(model.state_dict(), osp.join(model_path,model_name))
+          logger.info("saving model checkpoint {}".format(osp.join(model_path,model_name)))
 
-        for i, sample_image in tqdm(enumerate(train_loader),total=N):
-            
-            image = sample_image['image'].to(device)
-            depth = sample_image['depth'].to(device)
-            depth_n = DepthNorm(depth)
-            # Predict
-            output = model(image)
-            l_depth = l1_criterion(output, depth_n)
-            l_ssim = torch.clamp((1 - ssim(output, depth_n, val_range=1000.0 / 10.0)) * 0.5, 0, 1)
-            loss = (1.0 * l_ssim) + (0.1 * l_depth)
-            # Update step
-            optimizer.zero_grad()
-            losses.update(loss.data.item(), image.size(0))
-            loss.backward()
-            optimizer.step()
-
-            # Measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
-            eta = str(datetime.timedelta(seconds=int(batch_time.val * (N - i))))
-            # Log progress
-            niter = epoch * N + i
-            if i % 30 == 0:
-                # Print to console
-                logger.info('Epoch: [{0}][{1}/{2}]\t'
-                      'Time {batch_time.val:.3f} ({batch_time.sum:.3f})\t'
-                      'ETA {eta}\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})'
-                      .format(epoch + 1, i + 1, N, batch_time=batch_time, loss=losses, eta=eta))
-            if i + 1 % 10 == 0:
-                logger.info("logging progress ")
-                LogProgress(model, valid_loader, niter,device=device)
-        if epoch == 0:
-            epoch_loss = losses.avg
-            torch.save(model, os.path.join(model_path,'depth_model.pt'))
-        elif epoch_loss < losses.avg:
-            epoch_loss = losses.avg
-            logger.info("Loss decreased from {} to {}".format(epoch_loss, losses.avg))
-            # Save the model checkpoint
-            os.makedirs(osp.join(data_path, epoch ),exist_ok=True)
-            torch.save(model.state_dict(), osp.join(model_path, epoch ,model_name))
-
-    torch.save(osp.join(model_path, model_name))
+    torch.save(model, os.path.join(model_path,'depth_model.pt'))
 
 
 def LogProgress(model, val_loader, niter,out_dir='model/runs',device='cpu'):
     model.eval()
     sequential = val_loader
     sample_batch = next(iter(sequential))
-    image = sample_image['image'].to(device)
-    depth = sample_image['depth'].to(device)
+    image = sample_batch['image'].to(device)
+    depth = sample_batch['depth'].to(device)
 
     output = DepthNorm(model(image))
     predicted_image  = colorize(vutils.make_grid(output.data, nrow=6, normalize=False))
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, default=None, help='data_path')
     parser.add_argument('--epochs', default=20, type=int, help='number of total epochs to run')
     parser.add_argument('--lr', '--learning-rate', default=0.0001, type=float, help='initial learning rate')
-    parser.add_argument('--batchsize', default=4, type=int, help='batch size')
+    parser.add_argument('--batchsize', default=8, type=int, help='batch size')
     parser.add_argument('--outdir',default='model',type=str,help='output directory')
     args = parser.parse_args()
     train(args)
