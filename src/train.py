@@ -20,11 +20,44 @@ from utils.data_transforms import pre_process as preprocessing
 from utils.common import create_logger
 
 
+# learning rate decay
+def update_lr(opt, lr):
+    for param_group in opt.param_groups:
+        param_group['lr'] = lr
+
+
+def fine_tune(pretrined_model):
+    # save layer names
+    layer_names = []
+    for idx, (name, param) in enumerate(pretrined_model.named_parameters()):
+        layer_names.append(name)
+    # Getting the depth layers for decoder 
+    # reverse layers
+    layer_names.reverse()
+
+    # learning rate
+    lr      = 1e-2
+    lr_mult = 0.9
+    # placeholder
+    parameters = []
+
+    # store params & learning rates
+    for idx, name in enumerate(layer_names):
+        # append layer parameters
+        parameters += [{'params': [p for n, p in pretrined_model.named_parameters() if n == name and p.requires_grad],
+                        'lr':     lr}]
+        # update learning rate
+        lr *= lr_mult
+    return parameters
+
+
+
 def train(args):
     logger = create_logger()
 
-    data_path = "/content/"
-    model_path = "/content/model"
+    data_path = args.path
+    model_path = args.outdir
+    args.pretrained = "../model/depthnet.ckpt"
 
     train_df = pd.read_csv(os.path.join(data_path, 'data/nyu2_train.csv'))
     train_df.columns = ['RGB_images', 'Depth_images']
@@ -69,14 +102,24 @@ def train(args):
     # Create model
     model = Model().to(device)
 
+    if args.pretrained:
+        checkpoint = torch.load(args.pretrained) 
+        model.load_state_dict(checkpoint)
+        parameters  = fine_tune(pretrined_model=model)
+    else:
+        parameters = model.parameters()
+
     # Define Optimizer
     optimizer = torch.optim.Adam(model.parameters(), args.lr)
-
+    if args.pretrained:
+        logger.info("Loading model with pre-trained weights from {}".format(args.pretrained))
+        torch.optim.Adam(parameters)
     # Loss
     l1_criterion = nn.L1Loss()
     
-    #model Name 
-    model_name = 'depthnet.ckpt'
+    # model Name 
+    model_name = args.model_name+'.ckpt'
+
     # start Training
     epoch_loss = 0.0
     for epoch in range(epochs):
@@ -142,7 +185,7 @@ def LogProgress(model, val_loader, niter,out_dir='model/runs',device='cpu'):
     output = DepthNorm(model(image))
     predicted_image  = colorize(vutils.make_grid(output.data, nrow=6, normalize=False))
     print(predicted_image,type(predicted_image))
-    if not out_dir:
+    if not out_dir: 
         os.makedirs(out_dir)
     del image
     del depth
@@ -154,7 +197,9 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, default=None, help='data_path')
     parser.add_argument('--epochs', default=20, type=int, help='number of total epochs to run')
     parser.add_argument('--lr', '--learning-rate', default=0.0001, type=float, help='initial learning rate')
-    parser.add_argument('--batchsize', default=8, type=int, help='batch size')
-    parser.add_argument('--outdir',default='model',type=str,help='output directory')
+    parser.add_argument('--batchsize', default=4, type=int, help='batch size')
+    parser.add_argument('--pretrained',default=None,type=bool,help='pretrained network checkpoints ')
+    parser.add_argument('--outdir',default='model',type=str,help='output directory for saving model')
+    parser.add_argument('--model_name',default='depth_model2',type=str,help='Model name')
     args = parser.parse_args()
     train(args)
