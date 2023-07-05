@@ -16,17 +16,21 @@ from data_loader.data_loader_assignment import CreateAssignemntDataset
 from depth_model.model import PTModel
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+YOLO_MODEL = yolov7.load('kadirnar/yolov7-tiny-v0.1', hf_model=True)
+
+IMAGE_PROCESSOR = AutoImageProcessor.from_pretrained("vinvino02/glpn-nyu")
+DEPTH_MODEL = AutoModelForDepthEstimation.from_pretrained("vinvino02/glpn-nyu")
 
 def detect_child(image):
     # load pretrained or custom model
-    model = yolov7.load('kadirnar/yolov7-tiny-v0.1', hf_model=True)
+    
     meta_info = None
     # set model parameters
-    model.conf = 0.25  # NMS confidence threshold
-    model.iou = 0.45  # NMS IoU threshold
-    model.classes = None  # (optional list) filter by class
+    YOLO_MODEL.conf = 0.25  # NMS confidence threshold
+    YOLO_MODEL.iou = 0.45  # NMS IoU threshold
+    YOLO_MODEL.classes = None  # (optional list) filter by class
 
-    results = model([image])
+    results = YOLO_MODEL([image])
     predictions = results.pred[0]
     category = predictions[:, 5].numpy()
     if category[0] == 0:
@@ -45,7 +49,7 @@ def predict_with_opensource_model(image,model,processor,image_size=(240,320)):
     # interpolate to original size
     prediction = torch.nn.functional.interpolate(
         predicted_depth.unsqueeze(1),
-        size=(240,320),
+        size=image_size,
         mode="bicubic",
         align_corners=False,
     ).squeeze()
@@ -77,9 +81,10 @@ def predict_with_trained_model(test_image,model):
 def inference_rgbimage(rgb_image,depth_image_size=(240,320),depth_scale=0.01,checkpoint="vinvino02/glpn-nyu"):
     result = np.zeros_like(rgb_image)
     if "vinvino02/glpn-nyu" in checkpoint:
-        image_processor = AutoImageProcessor.from_pretrained(checkpoint)
-        model = AutoModelForDepthEstimation.from_pretrained(checkpoint)
-        result  = predict_with_opensource_model(rgb_image,model=model,processor=image_processor,image_size=depth_image_size)
+        result  = predict_with_opensource_model(rgb_image,
+                                                model=DEPTH_MODEL,
+                                                processor=IMAGE_PROCESSOR,
+                                                image_size=depth_image_size)
 
     else:
         model = PTModel().float().to(DEVICE)
