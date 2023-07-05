@@ -85,7 +85,6 @@ def inference_rgbimage(rgb_image,depth_image_size=(240,320),depth_scale=0.01,che
                                                 model=DEPTH_MODEL,
                                                 processor=IMAGE_PROCESSOR,
                                                 image_size=depth_image_size)
-
     else:
         model = PTModel().float().to(DEVICE)
         print("loading checkpoints from {}".format(checkpoint))
