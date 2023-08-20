@@ -140,7 +140,7 @@ def read_rgb_data(rgb_fpath, width, height):
         pil_im = pil_im.rotate(-90, expand=True)
         rgb_height, rgb_width = pil_im.width, pil_im.height  # Weird switch
         assert rgb_width / width == rgb_height / height, f'{rgb_width} / {width} != {rgb_height} / {height}'
-        pil_im = pil_im.resize((480, 640), Image.ANTIALIAS)
+        pil_im = pil_im.resize((480, 640), Image.Resampling.LANCZOS)
         rgb_array = np.asarray(pil_im)
     else:
         rgb_array = None
