@@ -1,5 +1,5 @@
 import os
-
+import cv2
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
@@ -7,16 +7,17 @@ from torch.utils.data import Dataset
 from utils.load_tof_images import create_from_zip_absolute as load_tof_data
 
 # define the input image dimensions
-INPUT_IMAGE_WIDTH = 480
-INPUT_IMAGE_HEIGHT = 640
+INPUT_IMAGE_WIDTH = 384
+INPUT_IMAGE_HEIGHT = 384
 
 
 class CreateAssignemntDataset(Dataset):
-    def __init__(self, rgb_files, depth_files, transform=None, process_image=None, task='Train'):
+    def __init__(self, rgb_files, depth_files, transform=None, process_image=None, task='Train',image_shape=(384,384)):
         self.rgb_data = rgb_files
         self.depth_data = depth_files
         self.transform = transform
         self.pre_process = process_image
+        self.reshape = image_shape
 
     def __len__(self):
         return len(self.depth_data)  # return the number of total samples contained in the dataset
@@ -29,6 +30,9 @@ class CreateAssignemntDataset(Dataset):
         data = load_tof_data(rgb_fpath=rgb, depthmap_fpath=depth, calibration_fpath=calib_file)
         rgb_image = data[8]
         depth_image = data[3]
+
+        rgb_image= cv2.resize(rgb_image, self.reshape,interpolation = cv2.INTER_LINEAR)
+        depth_image = cv2.resize(depth_image,self.reshape,interpolation = cv2.INTER_LINEAR)
 
         if self.transform:
             sample = self.transform(image=rgb_image, mask=depth_image)
