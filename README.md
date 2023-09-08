@@ -15,7 +15,7 @@ By constructing connected paths between multi-scale local features and the globa
 
 
 ### Dataset
-We used a custom dataset child health monitoring system to estimate the height of the child using depth images. The dataset contains Child Images from multiple angles and it contains a Depth camera image and an RGB image along with the camera intrinsics details mainly fx , fy , cx , cy - this will be helpful in generating NERF image at later stage . 
+We used a custom dataset child health monitoring system to estimate the height of the child using depth images. The dataset contains Child Images from multiple angles and it contains a Depth camera image and an RGB image along with the camera intrinsics details mainly fx, fy, cx, and cy - this will be helpful in generating NERF images at a later stage. 
 
 
 ### Model Training 
@@ -26,7 +26,7 @@ There are two approaches :
 
 #### Transfer Learning Approach 
 
-With the Transfer Learning Approach we used existing Pre-trained Models from Kitty dataset having Monocular Depth images and we use the pretrained network to learn the features of new dataset.The approach works great in creating a depth map but we were not able to improve the accuracy beyond a threshould . 
+With the Transfer Learning Approach we used existing Pre-trained Models from Kitty dataset having Monocular Depth images and we use the pre-trained network to learn the features of new dataset. The approach works great in creating a depth map but we were not able to improve the accuracy beyond a threshold. 
 
 ![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/output.png)
 
@@ -37,3 +37,13 @@ The State of the Art GLPN deploy a hierarchical transformer encoder to capture a
 ![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/depthmap_GLPN.png)
 ### Metrics
 The most popular benchmark datasets are the KITTI and NYUv2 datasets. Models are typically evaluated using RMSE or absolute relative error.
+
+### Height Estimation 
+We used a relatively simple way of trignometry to estimate the child height creating two triangles and calculating the angle between them , giving an approximation of the height of the child with the depth map .
+The accuracy of the model using GLPN was around 85% on multiple child data images provided . 
+
+### NERF 
+
+A Neural Radiance Field (NeRF) is a fully-connected neural network that can generate novel views of complex 3D scenes, based on a partial set of 2D images.The model is asked to predict the RGB color and the volme density at a given point , ad we tend to overfit the model to create an accurate image from all the 3D points
+
+
