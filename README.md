@@ -26,7 +26,7 @@ There are two approaches :
 
 #### Transfer Learning Approach 
 
-With the Transfer Learning Approach we used existing Pre-trained Models from Kitty dataset having Monocular Depth images and we use the pre-trained network to learn the features of new dataset. The approach works great in creating a depth map but we were not able to improve the accuracy beyond a threshold. 
+With the Transfer Learning Approach, we used existing Pre-trained Models from the Kitty dataset having Monocular Depth images and we used the pre-trained network to learn the features of a new dataset. The approach works great in creating a depth map but we were not able to improve the accuracy beyond a threshold. 
 
 ![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/output.png)
 
@@ -39,11 +39,17 @@ The State of the Art GLPN deploy a hierarchical transformer encoder to capture a
 The most popular benchmark datasets are the KITTI and NYUv2 datasets. Models are typically evaluated using RMSE or absolute relative error.
 
 ### Height Estimation 
-We used a relatively simple way of trignometry to estimate the child height creating two triangles and calculating the angle between them , giving an approximation of the height of the child with the depth map .
-The accuracy of the model using GLPN was around 85% on multiple child data images provided . 
+We used a relatively simple way of trigonometry to estimate the child's height by creating two triangles and calculating the angle between them, giving an approximation of the height of the child with the depth map.
+The accuracy of the model using GLPN was around 85% on multiple child data images provided. 
 
 ### NERF 
 
-A Neural Radiance Field (NeRF) is a fully-connected neural network that can generate novel views of complex 3D scenes, based on a partial set of 2D images.The model is asked to predict the RGB color and the volme density at a given point , ad we tend to overfit the model to create an accurate image from all the 3D points
+A Neural Radiance Field (NeRF) is a fully-connected neural network that can generate novel views of complex 3D scenes, based on a partial set of 2D images.The model is asked to predict the RGB color and the volume density at a given point, and we tend to overfit the model to create an accurate image from all the 3D points. We took the depth and RGB image and with the help of Camera intrinsics available , compute the focal length of the camera 
+
+```
+                                                          focal = .5 * IMAGE_WIDTH / np.tan(.5 *  fx)
+```
+
+![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/NERF-Reconstructed.png)
 
 
