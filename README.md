@@ -32,8 +32,8 @@ With the Transfer Learning Approach we used existing Pre-trained Models from Kit
 
 ### Hugging Face GLPN
 
-The State of the Art GLPN deploy a hierarchical transformer encoder to capture and convey the global context and design a lightweight yet powerful decoder to generate an estimated depth map while considering local connectivity. Thus creating a better depth map image than Transfer learning approach used in previous method 
+The State of the Art GLPN deploy a hierarchical transformer encoder to capture and convey the global context and design a lightweight yet powerful decoder to generate an estimated depth map while considering local connectivity. Thus creating a better depth map image than the Transfer learning approach used in the previous method 
 
-
+![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/depthmap_GLPN.png)
 ### Metrics
 The most popular benchmark datasets are the KITTI and NYUv2 datasets. Models are typically evaluated using RMSE or absolute relative error.
