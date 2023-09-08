@@ -53,4 +53,5 @@ A Neural Radiance Field (NeRF) is a fully-connected neural network that can gene
 ![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/NERF-Reconstructed.png)
 
 Once we have a NERF trained model , we use the set of images to create a 360 degree field view image from reconstructed NERF RGB images 
+
 ![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/NERF_video/Depth_rgb_video.gif)
