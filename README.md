@@ -47,7 +47,7 @@ The accuracy of the model using GLPN was around 85% on multiple child data image
 A Neural Radiance Field (NeRF) is a fully-connected neural network that can generate novel views of complex 3D scenes, based on a partial set of 2D images.The model is asked to predict the RGB color and the volume density at a given point, and we tend to overfit the model to create an accurate image from all the 3D points. We took the depth and RGB image and with the help of Camera intrinsics available , compute the focal length of the camera 
 
 ```
-                                                          focal = .5 * IMAGE_WIDTH / np.tan(.5 *  fx)
+    focal = .5 * IMAGE_WIDTH / np.tan(.5 *  fx)
 ```
 
 ![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/NERF-Reconstructed.png)
