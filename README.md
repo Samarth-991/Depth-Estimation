@@ -28,7 +28,7 @@ There are two approaches :
 
 With the Transfer Learning Approach we used existing Pre-trained Models from Kitty dataset having Monocular Depth images and we use the pretrained network to learn the features of new dataset.The approach works great in creating a depth map but we were not able to improve the accuracy beyond a threshould . 
 
-![Image text]()
+![Image text](https://github.com/Samarth-991/Depth-Estimation/blob/main/output.png)
 
 ### Hugging Face GLPN
 
